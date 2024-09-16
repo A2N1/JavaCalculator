@@ -7,6 +7,19 @@ package calculator;
  * Enthält mit Absicht noch diverse Bugs oder unvollständige Funktionen.
  */
 public class Calculator {
+    public static void main(String[] args) {
+        Calculator calc = new Calculator();
+
+        // Beispiel für eine Berechnung: 1 + 2
+        calc.pressDigitKey(1); // Drücke die Taste "1"
+        calc.pressBinaryOperationKey("+"); // Drücke die Taste "+"
+        calc.pressDigitKey(2); // Drücke die Taste "2"
+        calc.pressEqualsKey(); // Drücke die Taste "="
+
+        System.out.println("Ergebnis: " + calc.readScreen());
+    }
+
+
 
     private String screen = "0";
 

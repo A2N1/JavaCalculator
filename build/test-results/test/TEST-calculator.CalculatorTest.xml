@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Retro calculator" tests="1" skipped="0" failures="0" errors="0" timestamp="2024-09-16T21:49:49" hostname="DESKTOP-MRNM9Q5" time="0.017">
+  <properties/>
+  <testcase name="should display error when dividing by zero" classname="calculator.CalculatorTest" time="0.017"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
