@@ -1,5 +1,7 @@
 package calculator;
 
+import java.util.Scanner;
+
 /**
  * Eine Klasse, die das Verhalten des Online Taschenrechners imitiert, welcher auf
  * https://www.online-calculator.com/ aufgerufen werden kann (ohne die Memory-Funktionen)
@@ -9,14 +11,34 @@ package calculator;
 public class Calculator {
     public static void main(String[] args) {
         Calculator calc = new Calculator();
+        Scanner scanner = new Scanner(System.in);
 
-        // Beispiel für eine Berechnung: 1 + 2
-        calc.pressDigitKey(1); // Drücke die Taste "1"
-        calc.pressBinaryOperationKey("+"); // Drücke die Taste "+"
-        calc.pressDigitKey(2); // Drücke die Taste "2"
-        calc.pressEqualsKey(); // Drücke die Taste "="
+        while (true) {
+            System.out.println("Geben Sie eine Zahl ein:");
+            int zahl = scanner.nextInt(); // Erfasst die Zahl vom Benutzer
+            calc.pressDigitKey(zahl);
 
-        System.out.println("Ergebnis: " + calc.readScreen());
+            System.out.println("Geben Sie eine Operation ein (+, -, x, /) oder 'q' zum Beenden:");
+            String operation = scanner.next(); // Erfasst die Operation vom Benutzer
+
+            if (operation.equals("q")) {
+                System.out.println("Programm beendet.");
+                break;
+            }
+
+            calc.pressBinaryOperationKey(operation); // Führt die Operation aus
+
+            System.out.println("Geben Sie die zweite Zahl ein:");
+            int zweiteZahl = scanner.nextInt(); // Erfasst die zweite Zahl vom Benutzer
+            calc.pressDigitKey(zweiteZahl);
+
+            calc.pressEqualsKey(); // Berechnung ausführen
+
+            System.out.println("Ergebnis: " + calc.readScreen()); // Ergebnis anzeigen
+            calc.pressClearKey(); // Bildschirm zurücksetzen für nächste Berechnung
+        }
+
+        scanner.close();
     }
 
 
