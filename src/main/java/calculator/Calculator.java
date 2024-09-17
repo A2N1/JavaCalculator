@@ -14,39 +14,29 @@ public class Calculator {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
-            System.out.println("Geben Sie eine Zahl ein:");
-            int zahl = scanner.nextInt(); // Erfasst die Zahl vom Benutzer
-            calc.pressDigitKey(zahl);
+            System.out.println("Geben Sie einen mathematischen Ausdruck ein (oder 'q' zum Beenden):");
+            String input = scanner.nextLine(); // Erfasst die ganze Zeile vom Benutzer
 
-            System.out.println("Geben Sie eine Operation ein (+, -, x, /) oder 'q' zum Beenden:");
-            String operation = scanner.next(); // Erfasst die Operation vom Benutzer
-
-            if (operation.equals("q")) {
+            if (input.equalsIgnoreCase("q")) {
                 System.out.println("Programm beendet.");
                 break;
             }
 
-            calc.pressBinaryOperationKey(operation); // Führt die Operation aus
+            try {
+                calc.parseAndCalculate(input); // Berechnung durchführen
+                System.out.println("Ergebnis: " + calc.readScreen()); // Ergebnis anzeigen
+            } catch (Exception e) {
+                System.out.println("Ungültiger Ausdruck: " + e.getMessage());
+            }
 
-            System.out.println("Geben Sie die zweite Zahl ein:");
-            int zweiteZahl = scanner.nextInt(); // Erfasst die zweite Zahl vom Benutzer
-            calc.pressDigitKey(zweiteZahl);
-
-            calc.pressEqualsKey(); // Berechnung ausführen
-
-            System.out.println("Ergebnis: " + calc.readScreen()); // Ergebnis anzeigen
-            calc.pressClearKey(); // Bildschirm zurücksetzen für nächste Berechnung
+            calc.pressClearKey(); // Zurücksetzen für die nächste Berechnung
         }
 
         scanner.close();
     }
 
-
-
     private String screen = "0";
-
     private double latestValue;
-
     private String latestOperation = "";
 
     /**
@@ -54,24 +44,6 @@ public class Calculator {
      */
     public String readScreen() {
         return screen;
-    }
-
-    /**
-     * Empfängt den Wert einer gedrückten Zifferntaste. Da man nur eine Taste auf einmal
-     * drücken kann muss der Wert positiv und einstellig sein und zwischen 0 und 9 liegen.
-     * Führt in jedem Fall dazu, dass die gerade gedrückte Ziffer auf dem Bildschirm angezeigt
-     * oder rechts an die zuvor gedrückte Ziffer angehängt angezeigt wird.
-     * Es werden maximal 9 Ziffern dargestellt.
-     * @param digit Die Ziffer, deren Taste gedrückt wurde
-     */
-    public void pressDigitKey(int digit) {
-        if(digit > 9 || digit < 0) throw new IllegalArgumentException();
-
-        if(screen.equals("0") || latestValue == Double.parseDouble(screen)) screen = "";
-
-        if (screen.length() < 9) { //Prüfen der Anzahl der Ziffern
-            screen += digit; //Hinzufügen bei <9 oder belassen der Ziffern bei =9 und >9
-        }
     }
 
     /**
@@ -88,6 +60,58 @@ public class Calculator {
         latestValue = 0.0;
     }
 
+    public void parseAndCalculate(String input) {
+        input = input.replace(" ", ""); // Entferne Leerzeichen
+        String[] tokens = input.split("(?<=[-+x/])|(?=[-+x/])"); // Split auf Basis von Operatoren
+
+        if (tokens.length < 3 || tokens.length % 2 == 0) {
+            throw new IllegalArgumentException("Ungültiger Ausdruck. Es werden zwei Operanden und ein Operator benötigt.");
+        }
+
+        // Starte mit dem ersten Wert
+        double result = Double.parseDouble(tokens[0]);
+
+        // Iteriere über die Operatoren und Operanden
+        for (int i = 1; i < tokens.length; i += 2) {
+            String operation = tokens[i];
+            double nextOperand = Double.parseDouble(tokens[i + 1]);
+
+            // Führe die Operation auf den resultierenden Wert aus
+            result = applyOperation(result, nextOperand, operation);
+        }
+
+        screen = Double.toString(result);
+        if (screen.endsWith(".0")) {
+            screen = screen.substring(0, screen.length() - 2); // Entferne unnötige Dezimalstellen
+        }
+    }
+
+    private double applyOperation(double leftOperand, double rightOperand, String operation) {
+        return switch (operation) {
+            case "+" -> leftOperand + rightOperand;
+            case "-" -> leftOperand - rightOperand;
+            case "x" -> leftOperand * rightOperand;
+            case "/" -> {
+                if (rightOperand == 0) throw new ArithmeticException("Division durch 0");
+                yield leftOperand / rightOperand;
+            }
+            default -> throw new IllegalArgumentException("Unbekannte Operation: " + operation);
+        };
+    }
+
+    /**
+     * Empfängt den Wert einer gedrückten Zifferntaste. Da man nur eine Taste auf einmal
+     * drücken kann muss der Wert positiv und einstellig sein und zwischen 0 und 9 liegen.
+     * Führt in jedem Fall dazu, dass die gerade gedrückte Ziffer auf dem Bildschirm angezeigt
+     * oder rechts an die zuvor gedrückte Ziffer angehängt angezeigt wird.
+     * Es werden maximal 9 Ziffern dargestellt.
+     * @param digit Die Ziffer, deren Taste gedrückt wurde
+     */
+    public void pressDigitKey(double digit) {
+        screen = Double.toString(digit);
+        latestValue = digit;
+    }
+
     /**
      * Empfängt den Wert einer gedrückten binären Operationstaste, also eine der vier Operationen
      * Addition, Substraktion, Division, oder Multiplikation, welche zwei Operanden benötigen.
@@ -97,7 +121,7 @@ public class Calculator {
      * auf dem Bildschirm angezeigt. Falls hierbei eine Division durch Null auftritt, wird "Error" angezeigt.
      * @param operation "+" für Addition, "-" für Substraktion, "x" für Multiplikation, "/" für Division
      */
-    public void pressBinaryOperationKey(String operation)  {
+    public void pressBinaryOperationKey(String operation) {
         latestValue = Double.parseDouble(screen);
         latestOperation = operation;
     }
@@ -156,16 +180,20 @@ public class Calculator {
      * und das Ergebnis direkt angezeigt.
      */
     public void pressEqualsKey() {
-        var result = switch(latestOperation) {
-            case "+" -> latestValue + Double.parseDouble(screen);
-            case "-" -> latestValue - Double.parseDouble(screen);
-            case "x" -> latestValue * Double.parseDouble(screen);
-            case "/" -> latestValue / Double.parseDouble(screen);
-            default -> Double.parseDouble(screen); //Switch-Expression, Umwandlung in Double, Wiedergabe
+        double secondValue = Double.parseDouble(screen);
+        double result = switch (latestOperation) {
+            case "+" -> latestValue + secondValue;
+            case "-" -> latestValue - secondValue;
+            case "x" -> latestValue * secondValue;
+            case "/" -> secondValue == 0 ? Double.POSITIVE_INFINITY : latestValue / secondValue;
+            default -> secondValue;
         };
-        screen = Double.toString(result);
-        if(screen.equals("Infinity")) screen = "Error";
-        if(screen.endsWith(".0")) screen = screen.substring(0,screen.length()-2);
-        if(screen.contains(".") && screen.length() > 11) screen = screen.substring(0, 10);
+
+        if (Double.isInfinite(result)) {
+            screen = "Error";
+        } else {
+            screen = Double.toString(result);
+            if (screen.endsWith(".0")) screen = screen.substring(0, screen.length() - 2);
+        }
     }
 }
