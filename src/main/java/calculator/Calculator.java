@@ -1,8 +1,13 @@
 package calculator;
 
 import java.util.Scanner;
+import java.util.Stack;
 
 /**
+ * Version: 1.0
+ * Author: A2N1
+ * Date: 2024-10-02
+ * ---------------------
  * Eine Klasse, die das Verhalten des Online Taschenrechners imitiert, welcher auf
  * https://www.online-calculator.com/ aufgerufen werden kann (ohne die Memory-Funktionen)
  * und dessen Bildschirm bis zu 9 Ziffern darstellen kann.
@@ -13,19 +18,23 @@ public class Calculator {
         Calculator calc = new Calculator();
         Scanner scanner = new Scanner(System.in);
 
+        // Hauptschleife zur Verarbeitung von Benutzereingaben
         while (true) {
             System.out.println("Geben Sie einen mathematischen Ausdruck ein (oder 'q' zum Beenden):");
             String input = scanner.nextLine(); // Erfasst die ganze Zeile vom Benutzer
 
+            // Beenden, wenn der Benutzer 'q' eingibt
             if (input.equalsIgnoreCase("q")) {
                 System.out.println("Programm beendet.");
                 break;
             }
 
             try {
-                calc.parseAndCalculate(input); // Berechnung durchführen
-                System.out.println("Ergebnis: " + calc.readScreen()); // Ergebnis anzeigen
+                // Berechnung durchführen und Ergebnis anzeigen
+                calc.parseAndCalculate(input);
+                System.out.println("Ergebnis: " + calc.readScreen());
             } catch (Exception e) {
+                // Bei Fehlern eine Fehlermeldung anzeigen
                 System.out.println("Ungültiger Ausdruck: " + e.getMessage());
             }
 
@@ -35,11 +44,14 @@ public class Calculator {
         scanner.close();
     }
 
+    // Attribute zur Speicherung des Bildschirminhalts, des letzten Wertes und der letzten Operation
     private String screen = "0";
     private double latestValue;
     private String latestOperation = "";
+    private Stack<String> history = new Stack<>();
 
     /**
+     * Gibt den aktuellen Bildschirminhalt zurück
      * @return den aktuellen Bildschirminhalt als String
      */
     public String readScreen() {
@@ -47,12 +59,8 @@ public class Calculator {
     }
 
     /**
-     * Empfängt den Befehl der C- bzw. CE-Taste (Clear bzw. Clear Entry).
-     * Einmaliges Drücken der Taste löscht die zuvor eingegebenen Ziffern auf dem Bildschirm
-     * so dass "0" angezeigt wird, jedoch ohne zuvor zwischengespeicherte Werte zu löschen.
-     * Wird daraufhin noch einmal die Taste gedrückt, dann werden auch zwischengespeicherte
-     * Werte sowie der aktuelle Operationsmodus zurückgesetzt, so dass der Rechner wieder
-     * im Ursprungszustand ist.
+     * Setzt den Bildschirminhalt auf "0" zurück und löscht die letzte Operation und den letzten Wert.
+     * Simuliert das Drücken der C- oder CE-Taste (Clear).
      */
     public void pressClearKey() {
         screen = "0";
@@ -60,32 +68,60 @@ public class Calculator {
         latestValue = 0.0;
     }
 
+    /**
+     * Parst den eingegebenen mathematischen Ausdruck und berechnet das Ergebnis.
+     * Unterstützt einfache mathematische Operationen (+, -, x, /) und Klammerausdrücke.
+     * Speichert das Ergebnis auf dem Bildschirm.
+     *
+     * @param input Der mathematische Ausdruck als String
+     */
     public void parseAndCalculate(String input) {
         input = input.replace(" ", ""); // Entferne Leerzeichen
-        String[] tokens = input.split("(?<=[-+x/])|(?=[-+x/])"); // Split auf Basis von Operatoren
 
-        if (tokens.length < 3 || tokens.length % 2 == 0) {
-            throw new IllegalArgumentException("Ungültiger Ausdruck. Es werden zwei Operanden und ein Operator benötigt.");
+        // Überprüfe auf Klammerausdrücke und wende deren Berechnung an
+        if (input.contains("(") || input.contains(")")) {
+            screen = Double.toString(evaluateExpression(input));
+        } else {
+            // Zerlege den Ausdruck in Zahlen und Operatoren
+            String[] tokens = input.split("(?<=[-+x/])|(?=[-+x/])");
+
+            // Überprüfe, ob der Ausdruck gültig ist (mindestens zwei Operanden und ein Operator)
+            if (tokens.length < 3 || tokens.length % 2 == 0) {
+                throw new IllegalArgumentException("Ungültiger Ausdruck. Es werden zwei Operanden und ein Operator benötigt.");
+            }
+
+            // Starte mit dem ersten Wert
+            double result = Double.parseDouble(tokens[0]);
+
+            // Iteriere über die Operatoren und Operanden
+            for (int i = 1; i < tokens.length; i += 2) {
+                String operation = tokens[i];
+                double nextOperand = Double.parseDouble(tokens[i + 1]);
+
+                // Führe die Operation auf den resultierenden Wert aus
+                result = applyOperation(result, nextOperand, operation);
+            }
+
+            // Aktualisiere den Bildschirm mit dem Ergebnis
+            screen = Double.toString(result);
+            if (screen.endsWith(".0")) {
+                screen = screen.substring(0, screen.length() - 2); // Entferne unnötige Dezimalstellen
+            }
         }
 
-        // Starte mit dem ersten Wert
-        double result = Double.parseDouble(tokens[0]);
-
-        // Iteriere über die Operatoren und Operanden
-        for (int i = 1; i < tokens.length; i += 2) {
-            String operation = tokens[i];
-            double nextOperand = Double.parseDouble(tokens[i + 1]);
-
-            // Führe die Operation auf den resultierenden Wert aus
-            result = applyOperation(result, nextOperand, operation);
-        }
-
-        screen = Double.toString(result);
-        if (screen.endsWith(".0")) {
-            screen = screen.substring(0, screen.length() - 2); // Entferne unnötige Dezimalstellen
-        }
+        // Füge das Ergebnis zur Historie hinzu
+        history.push(screen);
     }
 
+    /**
+     * Wendet eine mathematische Operation (Addition, Subtraktion, Multiplikation oder Division)
+     * auf zwei Operanden an und gibt das Ergebnis zurück.
+     *
+     * @param leftOperand Der linke Operand (zuerst eingegebene Zahl)
+     * @param rightOperand Der rechte Operand (zweite Zahl)
+     * @param operation Der Operator als String ("+", "-", "x", "/")
+     * @return Das Ergebnis der Operation
+     */
     private double applyOperation(double leftOperand, double rightOperand, String operation) {
         return switch (operation) {
             case "+" -> leftOperand + rightOperand;
@@ -100,26 +136,80 @@ public class Calculator {
     }
 
     /**
-     * Empfängt den Wert einer gedrückten Zifferntaste. Da man nur eine Taste auf einmal
-     * drücken kann muss der Wert positiv und einstellig sein und zwischen 0 und 9 liegen.
-     * Führt in jedem Fall dazu, dass die gerade gedrückte Ziffer auf dem Bildschirm angezeigt
-     * oder rechts an die zuvor gedrückte Ziffer angehängt angezeigt wird.
-     * Es werden maximal 9 Ziffern dargestellt.
-     * @param digit Die Ziffer, deren Taste gedrückt wurde
+     * Bewertet einen mathematischen Ausdruck, der Klammern und mehrere Operationen enthält.
+     * Verwendet einen Stack zur korrekten Reihenfolge der Operationen.
+     *
+     * @param expression Der mathematische Ausdruck als String
+     * @return Das Ergebnis der Berechnung
+     */
+    private double evaluateExpression(String expression) {
+        Stack<Double> values = new Stack<>(); // Speichert Zahlen
+        Stack<Character> operators = new Stack<>(); // Speichert Operatoren
+
+        for (int i = 0; i < expression.length(); i++) {
+            char token = expression.charAt(i);
+
+            // Aktuelle Zahl extrahieren
+            if (Character.isDigit(token)) {
+                StringBuilder sb = new StringBuilder();
+                while (i < expression.length() && (Character.isDigit(expression.charAt(i)) || expression.charAt(i) == '.')) {
+                    sb.append(expression.charAt(i++));
+                }
+                values.push(Double.parseDouble(sb.toString()));
+                i--; // Zurücksetzen, weil der Index um eins zu viel erhöht wurde
+            } else if (token == '(') {
+                // Öffnende Klammer in den Operatoren-Stack einfügen
+                operators.push(token);
+            } else if (token == ')') {
+                // Bei schließender Klammer alle Operationen innerhalb der Klammer ausführen
+                while (operators.peek() != '(') {
+                    values.push(applyOperation(values.pop(), values.pop(), String.valueOf(operators.pop())));
+                }
+                operators.pop(); // Öffnende Klammer entfernen
+            } else if ("+-x/".indexOf(token) != -1) { // Operatoren nach Priorität verarbeiten
+                while (!operators.isEmpty() && precedence(token) <= precedence(operators.peek())) {
+                    values.push(applyOperation(values.pop(), values.pop(), String.valueOf(operators.pop())));
+                }
+                operators.push(token);
+            }
+        }
+
+        // Verbleibende Operationen ausführen
+        while (!operators.isEmpty()) {
+            values.push(applyOperation(values.pop(), values.pop(), String.valueOf(operators.pop())));
+        }
+
+        return values.pop(); // Endergebnis
+    }
+
+    /**
+     * Bestimmt die Priorität eines Operators. Multiplikation und Division haben höhere Priorität als Addition und Subtraktion.
+     *
+     * @param operator Der Operator als char
+     * @return Die Priorität des Operators (höhere Zahl = höhere Priorität)
+     */
+    private int precedence(char operator) {
+        return switch (operator) {
+            case '+', '-' -> 1;
+            case 'x', '/' -> 2;
+            default -> 0;
+        };
+    }
+
+    /**
+     * Simuliert das Drücken einer Zifferntaste. Aktualisiert den Bildschirm mit der neuen Ziffer.
+     *
+     * @param digit Die Ziffer, die gedrückt wurde
      */
     public void pressDigitKey(double digit) {
         screen = Double.toString(digit);
         latestValue = digit;
     }
-
     /**
-     * Empfängt den Wert einer gedrückten binären Operationstaste, also eine der vier Operationen
-     * Addition, Substraktion, Division, oder Multiplikation, welche zwei Operanden benötigen.
-     * Beim ersten Drücken der Taste wird der Bildschirminhalt nicht verändert, sondern nur der
-     * Rechner in den passenden Operationsmodus versetzt.
-     * Beim zweiten Drücken nach Eingabe einer weiteren Zahl wird direkt des aktuelle Zwischenergebnis
-     * auf dem Bildschirm angezeigt. Falls hierbei eine Division durch Null auftritt, wird "Error" angezeigt.
-     * @param operation "+" für Addition, "-" für Substraktion, "x" für Multiplikation, "/" für Division
+     * Simuliert das Drücken einer binären Operationstaste (Addition, Subtraktion, Multiplikation oder Division).
+     * Setzt den Rechner in den entsprechenden Operationsmodus.
+     *
+     * @param operation "+" für Addition, "-" für Subtraktion, "x" für Multiplikation, "/" für Division
      */
     public void pressBinaryOperationKey(String operation) {
         latestValue = Double.parseDouble(screen);
@@ -127,10 +217,9 @@ public class Calculator {
     }
 
     /**
-     * Empfängt den Wert einer gedrückten unären Operationstaste, also eine der drei Operationen
-     * Quadratwurzel, Prozent, Inversion, welche nur einen Operanden benötigen.
-     * Beim Drücken der Taste wird direkt die Operation auf den aktuellen Zahlenwert angewendet und
-     * der Bildschirminhalt mit dem Ergebnis aktualisiert.
+     * Simuliert das Drücken einer unären Operationstaste (Quadratwurzel, Prozent, Inversion).
+     * Führt die Operation auf den aktuellen Bildschirmwert aus und zeigt das Ergebnis an.
+     *
      * @param operation "√" für Quadratwurzel, "%" für Prozent, "1/x" für Inversion
      */
     public void pressUnaryOperationKey(String operation) {
@@ -145,39 +234,33 @@ public class Calculator {
         screen = Double.toString(result);
         if(screen.equals("NaN")) screen = "Error";
         if(screen.contains(".") && screen.length() > 11) screen = screen.substring(0, 10);
-
     }
 
     /**
-     * Empfängt den Befehl der gedrückten Dezimaltrennzeichentaste, im Englischen üblicherweise "."
-     * Fügt beim ersten Mal Drücken dem aktuellen Bildschirminhalt das Trennzeichen auf der rechten
-     * Seite hinzu und aktualisiert den Bildschirm. Daraufhin eingegebene Zahlen werden rechts vom
-     * Trennzeichen angegeben und daher als Dezimalziffern interpretiert.
-     * Beim zweimaligem Drücken, oder wenn bereits ein Trennzeichen angezeigt wird, passiert nichts.
+     * Simuliert das Drücken der Dezimaltrennzeichentaste.
+     * Wenn noch kein Dezimalpunkt vorhanden ist, wird er am Ende des Bildschirminhalts hinzugefügt.
+     * Daraufhin eingegebene Zahlen werden als Dezimalzahlen interpretiert.
      */
     public void pressDotKey() {
         if(!screen.contains(".")) screen = screen + ".";
     }
 
+
     /**
-     * Empfängt den Befehl der gedrückten Vorzeichenumkehrstaste ("+/-").
-     * Zeigt der Bildschirm einen positiven Wert an, so wird ein "-" links angehängt, der Bildschirm
-     * aktualisiert und die Inhalt fortan als negativ interpretiert.
-     * Zeigt der Bildschirm bereits einen negativen Wert mit führendem Minus an, dann wird dieses
-     * entfernt und der Inhalt fortan als positiv interpretiert.
+     * Simuliert das Drücken der Vorzeichenumkehrtaste ("+/-").
+     * Wenn der Bildschirmwert positiv ist, wird ein Minuszeichen hinzugefügt.
+     * Ist der Wert bereits negativ, wird das Minuszeichen entfernt.
      */
     public void pressNegativeKey() {
         screen = screen.startsWith("-") ? screen.substring(1) : "-" + screen;
     }
 
     /**
-     * Empfängt den Befehl der gedrückten "="-Taste.
-     * Wurde zuvor keine Operationstaste gedrückt, wird der zuvor eingegebene Wert ausgegeben.
-     * Wurde zuvor eine binäre Operationstaste gedrückt und zwei Operanden eingegeben, wird das
-     * Ergebnis der Operation angezeigt. Falls hierbei eine Division durch Null auftritt, wird "Error" angezeigt.
-     * Wird die Taste weitere Male gedrückt (ohne andere Tasten dazwischen), so wird die letzte
-     * Operation (ggf. inklusive letztem Operand) erneut auf den aktuellen Bildschirminhalt angewandt
-     * und das Ergebnis direkt angezeigt.
+     * Simuliert das Drücken der "="-Taste.
+     * Wendet die zuletzt gewählte binäre Operation (Addition, Subtraktion, Multiplikation oder Division)
+     * auf den aktuellen Bildschirmwert (secondValue) und den gespeicherten letzten Wert (latestValue) an.
+     * Falls keine Operation vorhanden ist, wird der aktuelle Wert einfach zurückgegeben.
+     * Wird eine Division durch Null erkannt, wird "Error" angezeigt.
      */
     public void pressEqualsKey() {
         double secondValue = Double.parseDouble(screen);
@@ -186,9 +269,10 @@ public class Calculator {
             case "-" -> latestValue - secondValue;
             case "x" -> latestValue * secondValue;
             case "/" -> secondValue == 0 ? Double.POSITIVE_INFINITY : latestValue / secondValue;
-            default -> secondValue;
+            default -> secondValue; // Falls keine Operation vorhanden ist, wird der aktuelle Wert zurückgegeben
         };
 
+        // Überprüfe auf Division durch 0 oder unendliche Ergebnisse
         if (Double.isInfinite(result)) {
             screen = "Error";
         } else {
