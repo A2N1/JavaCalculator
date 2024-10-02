@@ -7,12 +7,16 @@ import java.util.Stack;
  * Version: 1.0
  * Author: A2N1
  * Date: 2024-10-02
- * ---------------------
- * Eine Klasse, die das Verhalten des Online Taschenrechners imitiert, welcher auf
- * https://www.online-calculator.com/ aufgerufen werden kann (ohne die Memory-Funktionen)
- * und dessen Bildschirm bis zu 9 Ziffern darstellen kann.
- * Enthält mit Absicht noch diverse Bugs oder unvollständige Funktionen.
+ * -----------------------------------------------------
+ * The Calculator is a basic arithmetic tool that simulates the behavior of an online calculator.
+ * It allows the user to perform operations like addition, subtraction, multiplication,
+ * and division, as well as unary operations such as square root, percentage, and inversion.
+ * The user inputs mathematical expressions, and the calculator evaluates
+ * and displays the result on a screen that can show up to 9 digits.
+ * The calculator also includes error handling, such as preventing division by zero,
+ * and supports both simple and chained expressions.
  */
+
 public class Calculator {
     public static void main(String[] args) {
         Calculator calc = new Calculator();
